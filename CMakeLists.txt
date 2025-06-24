@@ -33,6 +33,9 @@ set(HEADER_FILES
     ${SOFTROBOTS_SOURCE_DIR}/component/behavior/SoftRobotsConstraint.h
     ${SOFTROBOTS_SOURCE_DIR}/component/behavior/SoftRobotsConstraint.inl
     
+    ${SOFTROBOTS_SOURCE_DIR}/component/constraint/SurfaceSlidingConstraint.h
+    ${SOFTROBOTS_SOURCE_DIR}/component/constraint/SurfaceSlidingConstraint.inl
+
     ${SOFTROBOTS_SOURCE_DIR}/component/constraint/CableConstraint.h
     ${SOFTROBOTS_SOURCE_DIR}/component/constraint/CableConstraint.inl
     ${SOFTROBOTS_SOURCE_DIR}/component/constraint/PartialRigidificationConstraint.h
@@ -81,6 +84,8 @@ set(SOURCE_FILES
 
     ${SOFTROBOTS_SOURCE_DIR}/component/behavior/SoftRobotsBaseConstraint.cpp
     ${SOFTROBOTS_SOURCE_DIR}/component/behavior/SoftRobotsConstraint.cpp
+
+    ${SOFTROBOTS_SOURCE_DIR}/component/constraint/SurfaceSlidingConstraint.cpp
 
     ${SOFTROBOTS_SOURCE_DIR}/component/constraint/CableConstraint.cpp
     ${SOFTROBOTS_SOURCE_DIR}/component/constraint/PartialRigidificationConstraint.cpp

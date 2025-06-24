@@ -45,6 +45,7 @@ namespace constraint
     extern void registerPositionConstraint(sofa::core::ObjectFactory* factory);
     extern void registerSurfacePressureConstraint(sofa::core::ObjectFactory* factory);
     extern void registerUnilateralPlaneConstraint(sofa::core::ObjectFactory* factory);
+    extern void registerSurfaceSlidingConstraint(sofa::core::ObjectFactory* factory);
 }
 
 namespace controller
@@ -149,6 +150,7 @@ void registerObjects(sofa::core::ObjectFactory* factory)
     constraint::registerPartialRigidificationConstraint(factory);
     constraint::registerPositionConstraint(factory);
     constraint::registerSurfacePressureConstraint(factory);
+    constraint::registerSurfaceSlidingConstraint(factory);
     constraint::registerUnilateralPlaneConstraint(factory);
     controller::registerAnimationEditor(factory);
     controller::registerDataVariationLimiter(factory);
@@ -184,6 +186,7 @@ SOFA_LINK_CLASS(PartialRigidificationConstraint)
 SOFA_LINK_CLASS(PartialRigidificationForceField)
 SOFA_LINK_CLASS(PREquivalentStiffnessForceField)
 SOFA_LINK_CLASS(SurfacePressureConstraint)
+SOFA_LINK_CLASS(SurfaceSlidingConstraint)
 SOFA_LINK_CLASS(SerialPortBridgeGeneric)
 SOFA_LINK_CLASS(InteractiveControl)
 SOFA_LINK_CLASS(UnilateralPlaneConstraint)
