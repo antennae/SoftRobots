@@ -2,11 +2,14 @@
 
 #include <sofa/core/behavior/ConstraintResolution.h>
 
+#include <sofa/core/objectmodel/Link.h>
 #include <sofa/core/topology/BaseMeshTopology.h>
 #include <sofa/defaulttype/VecTypes.h>
 
 #include <SoftRobots/component/behavior/SoftRobotsConstraint.h>
 #include <SoftRobots/component/initSoftRobots.h>
+
+#include <sofa/core/visual/VisualParams.h>
 
 
 namespace softrobots::constraint {
@@ -20,7 +23,7 @@ using sofa::helper::ReadAccessor;
 using sofa::linearalgebra::BaseVector;
 using sofa::type::vector;
 using softrobots::behavior::SoftRobotsConstraint;
-
+// using sofa::core::behavior::MechanicalState;
 
 
 class BilateralConstraintResolution : public ConstraintResolution
@@ -125,13 +128,17 @@ public:
 
 protected:
   Data<sofa::type::vector<unsigned int>> d_pointIndex;
-  Data<sofa::type::vector<Coord>> d_surfacePointsPosition;
   Data<sofa::type::vector<Triangle>> d_triangles;
 
   sofa::type::vector<Edge> m_edges;
   Data<Real> m_force; // Store constraint forces
   // Distance from the point to the surface
   Data<sofa::type::vector<Real>> m_distance;
+
+  sofa::SingleLink<SurfaceSlidingConstraint<DataTypes>, 
+          sofa::core::behavior::MechanicalState<DataTypes>, 
+          sofa::core::objectmodel::BaseLink::FLAG_STRONGLINK> d_surfaceState;
+  MechanicalState *m_pointState;
 
   ////////////////////////// Inherited attributes ////////////////////////////
   using SoftRobotsConstraint<DataTypes>::m_state;

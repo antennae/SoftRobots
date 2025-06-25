@@ -16,10 +16,10 @@ SurfaceSlidingConstraint<DataTypes>::SurfaceSlidingConstraint(
       d_pointIndex(initData(&d_pointIndex, "pointIndex",
                             "Index of the point on the surface to apply the "
                             "sliding constraint.")),
-      d_surfacePointsPosition(
-          initData(&d_surfacePointsPosition, "surfacePointsPosition",
-                   "Positions of the surface points on which the sliding "
-                   "constraint is applied.")),
+      d_surfaceState(
+          initLink("surfaceState",
+                   "Path to the mechanical state of the surface on which the "
+                   "sliding constraint is applied.")),
       d_triangles(initData(
           &d_triangles, "triangles",
           "List of triangles on which the sliding constraint is applied. \n"
@@ -38,6 +38,9 @@ template <class DataTypes> void SurfaceSlidingConstraint<DataTypes>::init() {
   SoftRobotsConstraint<DataTypes>::init();
 
   internalInit();
+
+  m_pointState =
+      dynamic_cast<MechanicalState *>(getContext()->getMechanicalState());
 
   d_componentState.setValue(ComponentState::Valid);
 }
@@ -88,9 +91,8 @@ void SurfaceSlidingConstraint<DataTypes>::buildConstraintMatrix(
   const VecCoord &positions = x.getValue();
   std::vector<unsigned int> pointIndices = d_pointIndex.getValue();
 
-  for (int i = 0; i < pointIndices.size(); ++i) {
+  for (unsigned int i = 0; i < pointIndices.size(); ++i) {
     // Get the position of the sliding point
-
     const Coord &pointPos = positions[pointIndices[i]];
 
     // Find closest point on surface and compute normal
@@ -145,14 +147,14 @@ void SurfaceSlidingConstraint<DataTypes>::getConstraintResolution(
   for (unsigned int i = 0; i < d_pointIndex.getValue().size(); ++i) {
     // Use BilateralConstraintResolution for bilateral constraints
     // This ensures the point stays exactly on the surface (no inequality)
-    resolutions[cIndex] = new BilateralConstraintResolution();
+    resolutions[cIndex++] = new BilateralConstraintResolution();
   }
 }
 
 template <class DataTypes>
 void SurfaceSlidingConstraint<DataTypes>::findClosestPointOnSurface(
     const Coord &P, Coord &closestPoint, Deriv &normal, Real &distance) {
-  ReadAccessor<Data<VecCoord>> positions = d_surfacePointsPosition;
+  ReadAccessor<Data<VecCoord>> positions = d_surfaceState->readPositions();
   ReadAccessor<Data<vector<Triangle>>> triangles = d_triangles;
 
   Real minDist = std::numeric_limits<Real>::max();
@@ -177,7 +179,6 @@ void SurfaceSlidingConstraint<DataTypes>::findClosestPointOnSurface(
         distance = -distance;
     }
   }
-
 }
 
 template <class DataTypes>
@@ -200,7 +201,6 @@ SurfaceSlidingConstraint<DataTypes>::getTriangleClosestPoint(
 
   return P - normal * projDist;
 }
-
 
 template <class DataTypes>
 typename SurfaceSlidingConstraint<DataTypes>::Deriv
@@ -238,14 +238,6 @@ void SurfaceSlidingConstraint<DataTypes>::storeLambda(
 }
 
 template <class DataTypes>
-void SurfaceSlidingConstraint<DataTypes>::draw(const VisualParams *vparams) {
-  if (d_componentState.getValue() != ComponentState::Valid)
-    return;
-
-  SOFA_UNUSED(vparams);
-}
-
-template <class DataTypes>
 void SurfaceSlidingConstraint<DataTypes>::internalInit() {
   if (m_state == nullptr) {
     msg_error() << "There is no mechanical state associated with this node. "
@@ -278,14 +270,14 @@ void SurfaceSlidingConstraint<DataTypes>::internalInit() {
 
   /// Check that the triangles datafield does not contains indices that would
   /// crash the component.
-  // ReadAccessor<Data<VecCoord>> positions = m_state->readPositions();
-  VecCoord positions = d_surfacePointsPosition.getValue();
+  ReadAccessor<Data<VecCoord>> positions = d_surfaceState->readPositions();
   int numTris = d_triangles.getValue().size();
   auto triangles = d_triangles.getValue();
   for (int i = 0; i < numTris; i++) {
     for (int j = 0; j < 3; j++) {
       if (triangles[i][j] >= positions.size())
-        msg_error() << "triangles[" << i << "][" << j << "]=" << triangles[i][j]
+        msg_error() << "triangles[" << i << "][" << j << "]=" <<
+        triangles[i][j]
                     << ". is too large regarding mechanicalState size of("
                     << positions.size() << ")";
     }
@@ -326,7 +318,28 @@ void SurfaceSlidingConstraint<DataTypes>::computeEdges() {
       }
     }
   }
+}
 
+template <class DataTypes>
+void SurfaceSlidingConstraint<DataTypes>::draw(const VisualParams *vparams) {
+  // const auto stateLifeCycle = vparams->drawTool()->makeStateLifeCycle();
+  // Draw Triangles
+  ReadAccessor<Data<VecCoord>> positions = d_surfaceState->readPositions();
+  ReadAccessor<Data<vector<Triangle>>> triangles = d_triangles;
+
+  std::vector<sofa::type::Vec3> pos;
+  pos.reserve(triangles.size() * 3u);
+  for (unsigned int i = 0; i < triangles.size(); i++) {
+    const Triangle &c = triangles[i];
+    const Coord &p0 = positions[c[0]];
+    const Coord &p1 = positions[c[1]];
+    const Coord &p2 = positions[c[2]];
+    pos.emplace_back(p0[0], p0[1], p0[2]);
+    pos.emplace_back(p1[0], p1[1], p1[2]);
+    pos.emplace_back(p2[0], p2[1], p2[2]);
+  }
+  vparams->drawTool()->drawTriangles(
+      pos, sofa::type::RGBAColor(0.4f, 1.0f, 0.3f, 1.0f));
 }
 
 } // namespace softrobots::constraint

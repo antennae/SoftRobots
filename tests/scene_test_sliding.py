@@ -181,21 +181,19 @@ def createScene(rootNode: Sofa.Core.Node) -> Sofa.Core.Node:
     add_header(root_node=rootNode, dt=0.01, inverse=False)
     solver_node = add_solver(rootNode, iterative=False)
 
-    # tri_position = [[0, 0, 0], [1, 0, 0], [0, 1, 0]]
-    # solver_node.addObject(
-    #     'MechanicalObject',
-    #     name='dofs',
-    #     template='Vec3d',
-    #     position=tri_position,
-    #     showObject=True,
-    # )
+    tri_position = [[0, 0, 0], [1, 0, 0], [0, 1, 0]]
+    surfaces_mesh = solver_node.addObject(
+        'MeshTopology',
+        name='triangles_mesh',
+        position=tri_position,
+        triangles=[[0, 1, 2]],
+    )
     solver_node.addObject(
         'MechanicalObject',
-        name='dofs',
-        position=[[0.2, 0.5, 0.5]],
+        name='triangles_mo',
         template='Vec3d',
         showObject=True,
-        showObjectScale=10,
+        showObjectScale=5,
     )
 
     solver_node.addObject(
@@ -204,28 +202,27 @@ def createScene(rootNode: Sofa.Core.Node) -> Sofa.Core.Node:
         totalMass=1.0,
     )
 
-    # solver_node.addObject(
-    #     'RestShapeSpringsForceField',
-    #     name='springForceField',
-    #     stiffness=0.1,
-    # )
-
     c_node = solver_node.addChild('constraint_node')
+
+    c_node.addObject(
+        'MechanicalObject',
+        name='point',
+        position=[[0.2, 0.5, 0.5]],
+        template='Vec3d',
+        showObject=True,
+        showObjectScale=10,
+    )
+
+    c_node.addObject(
+        'UniformMass',
+        name='mass',
+        totalMass=0.5,
+    )
 
     c_node.addObject(
         'SurfaceSlidingConstraint',
         name='slidingConstraint',
-        pointIndex=0,  # Use a single point index for simplicity
-        surfacePointsPosition=[
-            [0, 0, 0],
-            [1, 0, 0],
-            [0, 1, 0],
-        ],  # , [0, 0, 1]],
-        triangles=[[0, 1, 2]],  # , [0, 2, 3]],  # Define a single triangle
+        surfaceState='@../triangles_mo',
+        pointIndex=0,
+        triangles=surfaces_mesh.triangles,
     )
-
-    # c_node.addObject(
-    #     'PositionConstraint',
-    #     name='positionConstraint',
-    #     indices=[0],
-    # )
