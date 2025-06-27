@@ -1,5 +1,6 @@
 #pragma once
 
+#include <sofa/core/ConstraintParams.h>
 #include <sofa/core/behavior/ConstraintResolution.h>
 
 #include <sofa/core/objectmodel/Link.h>

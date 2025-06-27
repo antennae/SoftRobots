@@ -437,11 +437,12 @@ void SurfaceSlidingConstraint<DataTypes>::internalInit() {
     }
   }
 
+  ReadAccessor<Data<VecCoord>> mechanical_state_positions = m_state->readPositions();
   // // check that the pointIndex is valid - this check doesn't make sense
-  // if (d_pointIndex.getValue().size() >= positions.size())
-  //   msg_error() << "pointIndex=" << d_pointIndex.getValue()
-  //               << " is too large regarding mechanicalState size of("
-  //               << positions.size() << ")";
+  if (d_pointIndex.getValue().size() >= mechanical_state_positions.size())
+    msg_error() << "pointIndex=" << d_pointIndex.getValue()
+                << " is too large regarding mechanicalState size of("
+                << mechanical_state_positions.size() << ")";
 }
 
 template <class DataTypes>
