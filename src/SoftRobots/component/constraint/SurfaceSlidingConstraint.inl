@@ -107,11 +107,11 @@ void SurfaceSlidingConstraint<DataTypes>::buildConstraintMatrix(
     findBestConstraintDirection(pointPos, closestPoint, constraintDirection,
                                 distance, isInsideTriangle);
     
-    std::cout << "Point index: " << pointIndices[i]
-              << ", Closest point: " << closestPoint
-              << ", Direction: " << constraintDirection
-              << ", Distance: " << distance << std::endl;
-    std::cout << "Is inside triangle: " << isInsideTriangle << std::endl;
+    // std::cout << "Point index: " << pointIndices[i]
+    //           << ", Closest point: " << closestPoint
+    //           << ", Direction: " << constraintDirection
+    //           << ", Distance: " << distance << std::endl;
+    // std::cout << "Is inside triangle: " << isInsideTriangle << std::endl;
     stored_distance[i] = distance;
     rowIterator.addCol(pointIndices[i], constraintDirection);
     cIndex++;

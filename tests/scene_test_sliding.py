@@ -181,12 +181,12 @@ def createScene(rootNode: Sofa.Core.Node) -> Sofa.Core.Node:
     add_header(root_node=rootNode, dt=0.01, inverse=False)
     solver_node = add_solver(rootNode, iterative=False)
 
-    tri_position = [[0, 0, 0], [1, 0, 0], [0, 1, 0]]
+    tri_position = [[0, 0, 0], [1, 0, 0], [0, 1, 0], [0, 0, 1]]
     surfaces_mesh = solver_node.addObject(
         'MeshTopology',
         name='triangles_mesh',
         position=tri_position,
-        triangles=[[0, 1, 2]],
+        triangles=[[0, 1, 2], [0, 2, 3]],
     )
     solver_node.addObject(
         'MechanicalObject',
