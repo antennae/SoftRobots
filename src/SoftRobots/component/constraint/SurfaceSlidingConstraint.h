@@ -11,7 +11,6 @@
 
 #include <sofa/core/visual/VisualParams.h>
 
-
 namespace softrobots::constraint {
 
 using sofa::core::ConstraintParams;
@@ -25,55 +24,36 @@ using sofa::type::vector;
 using softrobots::behavior::SoftRobotsConstraint;
 // using sofa::core::behavior::MechanicalState;
 
-
-class BilateralConstraintResolution : public ConstraintResolution
-{
+class BilateralConstraintResolution : public ConstraintResolution {
 public:
-    BilateralConstraintResolution(SReal* initF=nullptr) 
-        : ConstraintResolution(1)
-        , _f(initF) {}
-    void resolution(int line, SReal** w, SReal* d, SReal* force, SReal *dfree) override
-    {
-        SOFA_UNUSED(dfree);
-        force[line] -= d[line] / w[line][line];
-    }
+  BilateralConstraintResolution(SReal *initF = nullptr)
+      : ConstraintResolution(1), _f(initF) {}
+  void resolution(int line, SReal **w, SReal *d, SReal *force,
+                  SReal *dfree) override {
+    SOFA_UNUSED(dfree);
+    force[line] -= d[line] / w[line][line];
+  }
 
-    void init(int line, SReal** /*w*/, SReal* force) override
-    {
-        if(_f) { force[line] = *_f; }
+  void init(int line, SReal ** /*w*/, SReal *force) override {
+    if (_f) {
+      force[line] = *_f;
     }
+  }
 
-    void initForce(int line, SReal* force) override
-    {
-        if(_f) { force[line] = *_f; }
+  void initForce(int line, SReal *force) override {
+    if (_f) {
+      force[line] = *_f;
     }
+  }
 
-    void store(int line, SReal* force, bool /*convergence*/) override
-    {
-        if(_f) *_f = force[line];
-    }
+  void store(int line, SReal *force, bool /*convergence*/) override {
+    if (_f)
+      *_f = force[line];
+  }
 
 protected:
-    SReal* _f;
+  SReal *_f;
 };
-
-
-// // Custom constraint resolution class (add to header file)
-// class SurfaceSlidingConstraintResolution : public sofa::core::behavior::ConstraintResolution
-// {
-// public:
-//     SurfaceSlidingConstraintResolution() : ConstraintResolution(1) {}
-    
-//     void resolution(int line, SReal** w, SReal* d, SReal* force, SReal* dfree) override
-//     {
-//         // Bilateral constraint: force can be positive or negative
-//         // This keeps the point exactly on the surface
-//         force[line] = -dfree[line] / w[line][line];
-//     }
-// };
-
-
-
 
 template <class DataTypes>
 class SurfaceSlidingConstraint : public SoftRobotsConstraint<DataTypes> {
@@ -119,8 +99,8 @@ public:
   void getConstraintViolation(const sofa::core::ConstraintParams *cParams,
                               BaseVector *resV, const BaseVector *Jdx) override;
   void getConstraintResolution(const ConstraintParams *,
-                                std::vector<ConstraintResolution *> &,
-                                unsigned int &) override;
+                               std::vector<ConstraintResolution *> &,
+                               unsigned int &) override;
   ////////////////////////// Inherited from BaseConstraint ////////////////
   void storeLambda(const ConstraintParams *cParams,
                    sofa::core::MultiVecDerivId res,
@@ -135,9 +115,10 @@ protected:
   // Distance from the point to the surface
   Data<sofa::type::vector<Real>> m_distance;
 
-  sofa::SingleLink<SurfaceSlidingConstraint<DataTypes>, 
-          sofa::core::behavior::MechanicalState<DataTypes>, 
-          sofa::core::objectmodel::BaseLink::FLAG_STRONGLINK> d_surfaceState;
+  sofa::SingleLink<SurfaceSlidingConstraint<DataTypes>,
+                   sofa::core::behavior::MechanicalState<DataTypes>,
+                   sofa::core::objectmodel::BaseLink::FLAG_STRONGLINK>
+      d_surfaceState;
   MechanicalState *m_pointState;
 
   ////////////////////////// Inherited attributes ////////////////////////////
@@ -157,6 +138,12 @@ private:
   // Surface computation
   void findClosestPointOnSurface(const Coord &P, Coord &closestPoint,
                                  Deriv &normal, Real &distance);
+
+  void findBestConstraintDirection(const Coord &P, Coord &closestPoint,
+                                   Deriv &constraintDirection, Real &distance,
+                                   bool &isInsideTriangle);
+  sofa::type::Vec3 computeBarycentricCoords(const Coord &P, const Triangle &tri,
+                                            const VecCoord &positions);
   Coord getTriangleClosestPoint(const Coord &P, const Triangle &tri,
                                 const VecCoord &positions);
   Deriv getTriangleNormal(const Triangle &tri, const VecCoord &positions);

@@ -207,7 +207,8 @@ def createScene(rootNode: Sofa.Core.Node) -> Sofa.Core.Node:
     c_node.addObject(
         'MechanicalObject',
         name='point',
-        position=[[0.2, 0.5, 0.5]],
+        # position=[[0.5, -0.5, 0.5]],
+        position=[[0.3, 0.3, 0.5]],
         template='Vec3d',
         showObject=True,
         showObjectScale=10,

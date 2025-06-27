@@ -1,5 +1,7 @@
 #pragma once
 
+#include <sofa/geometry/proximity/PointTriangle.h>
+
 #include <SoftRobots/component/constraint/SurfaceSlidingConstraint.h>
 
 namespace softrobots::constraint {
@@ -81,8 +83,9 @@ void SurfaceSlidingConstraint<DataTypes>::buildConstraintMatrix(
 
   WriteAccessor<Data<sofa::type::vector<Real>>> stored_distance =
       sofa::helper::getWriteAccessor(m_distance);
-
   stored_distance.clear();
+  stored_distance.resize(
+      d_pointIndex.getValue().size()); // Size by number of points
 
   // Build constraint matrix: single row with normal direction
   MatrixDeriv &matrix = *cMatrix.beginEdit();
@@ -95,16 +98,22 @@ void SurfaceSlidingConstraint<DataTypes>::buildConstraintMatrix(
     // Get the position of the sliding point
     const Coord &pointPos = positions[pointIndices[i]];
 
-    // Find closest point on surface and compute normal
+    // Find closest point and determine constraint type
     Coord closestPoint;
-    // normal direction to the surface
-    Deriv normal;
+    Deriv constraintDirection;
     Real distance;
-    findClosestPointOnSurface(pointPos, closestPoint, normal, distance);
-    stored_distance.push_back(distance);
+    bool isInsideTriangle = false;
 
-    // Slide point onto the surface
-    rowIterator.addCol(pointIndices[i], normal);
+    findBestConstraintDirection(pointPos, closestPoint, constraintDirection,
+                                distance, isInsideTriangle);
+    
+    std::cout << "Point index: " << pointIndices[i]
+              << ", Closest point: " << closestPoint
+              << ", Direction: " << constraintDirection
+              << ", Distance: " << distance << std::endl;
+    std::cout << "Is inside triangle: " << isInsideTriangle << std::endl;
+    stored_distance[i] = distance;
+    rowIterator.addCol(pointIndices[i], constraintDirection);
     cIndex++;
   }
 
@@ -123,7 +132,6 @@ void SurfaceSlidingConstraint<DataTypes>::getConstraintViolation(
   for (unsigned int i = 0; i < d_pointIndex.getValue().size(); ++i) {
     // Get the index of the point
     unsigned int pointIndex = d_pointIndex.getValue()[i];
-
     // Get the distance from the point to the surface
     Real distance = m_distance.getValue()[pointIndex];
 
@@ -189,17 +197,166 @@ SurfaceSlidingConstraint<DataTypes>::getTriangleClosestPoint(
   const Coord &B = positions[tri[1]];
   const Coord &C = positions[tri[2]];
 
-  // Simple projection to triangle plane - can be improved with barycentric
-  // coordinates
-  Deriv AB = B - A;
-  Deriv AC = C - A;
-  Deriv normal = cross(AB, AC);
-  normal.normalize();
+  // Use SOFA's geometry utilities for proper closest point calculation
+  sofa::type::Vec3 closest;
+  bool success =
+      sofa::geometry::proximity::computeClosestPointOnTriangleToPoint(
+          sofa::type::Vec3(A), sofa::type::Vec3(B), sofa::type::Vec3(C),
+          sofa::type::Vec3(P), closest);
 
-  Deriv AP = P - A;
-  Real projDist = dot(AP, normal);
+  assert(success); // Ensure the closest point calculation was successful
+  SOFA_UNUSED(success);
+  // If successful, return the closest point as a Coord
+  return Coord(closest[0], closest[1], closest[2]);
 
-  return P - normal * projDist;
+  // if (success) {
+  //   return Coord(closest[0], closest[1], closest[2]);
+  // }
+  // else {
+  //   // // Fallback to simple projection
+  //   // Deriv AB = B - A;
+  //   // Deriv AC = C - A;
+  //   // Deriv normal = cross(AB, AC);
+  //   // normal.normalize();
+
+  //   // Deriv AP = P - A;
+  //   // Real projDist = dot(AP, normal);
+  //   // return P - normal * projDist;
+
+  //   // fallback: return the closest vertex
+  //   Real distA = (P - A).norm();
+  //   Real distB = (P - B).norm();
+  //   Real distC = (P - C).norm();
+
+  //   if (distA <= distB && distA <= distC) return A;
+  //   else if (distB <= distC) return B;
+  //   else return C;
+  // }
+
+  // // Simple projection to triangle plane - can be improved with barycentric
+  // // coordinates
+  // Deriv AB = B - A;
+  // Deriv AC = C - A;
+  // Deriv normal = cross(AB, AC);
+  // normal.normalize();
+
+  // Deriv AP = P - A;
+  // Real projDist = dot(AP, normal);
+
+  // return P - normal * projDist;
+}
+
+template <class DataTypes>
+void SurfaceSlidingConstraint<DataTypes>::findBestConstraintDirection(
+    const Coord &P, Coord &closestPoint, Deriv &constraintDirection,
+    Real &distance, bool &isInsideTriangle) {
+
+  ReadAccessor<Data<VecCoord>> positions = d_surfaceState->readPositions();
+  ReadAccessor<Data<vector<Triangle>>> triangles = d_triangles;
+
+  Real minDist = std::numeric_limits<Real>::max();
+  closestPoint = P;
+  constraintDirection = Deriv(0, 0, 1); // default
+  distance = 0;
+  isInsideTriangle = false;
+
+  // Track the best triangle and barycentric coordinates
+  int bestTriangleIdx = -1;
+  sofa::type::Vec3 bestBarycentric;
+
+  for (size_t triIdx = 0; triIdx < triangles.size(); ++triIdx) {
+    const Triangle &tri = triangles[triIdx];
+    const Coord &A = positions[tri[0]];
+    const Coord &B = positions[tri[1]];
+    const Coord &C = positions[tri[2]];
+
+    // Get closest point
+    sofa::type::Vec3 closest;
+    bool success =
+        sofa::geometry::proximity::computeClosestPointOnTriangleToPoint(
+            sofa::type::Vec3(A), sofa::type::Vec3(B), sofa::type::Vec3(C),
+            sofa::type::Vec3(P), closest);
+
+    if (!success)
+      continue;
+
+    Coord triClosest(closest[0], closest[1], closest[2]);
+    Real dist = (P - triClosest).norm();
+
+    if (dist < minDist) {
+      minDist = dist;
+      closestPoint = triClosest;
+      bestTriangleIdx = triIdx;
+
+      // Compute barycentric coordinates for the closest point
+      bestBarycentric =
+          computeBarycentricCoords(triClosest, tri, positions.ref());
+
+      // Check if point is inside triangle (all barycentric coords > epsilon)
+      const Real epsilon = 1e-6;
+      isInsideTriangle =
+          (bestBarycentric[0] > epsilon && bestBarycentric[1] > epsilon &&
+           bestBarycentric[2] > epsilon);
+    }
+  }
+
+  // Rest of the function remains the same...
+  if (bestTriangleIdx >= 0) {
+    const Triangle &bestTri = triangles[bestTriangleIdx];
+
+    if (isInsideTriangle) {
+      // Point projects inside triangle - use triangle normal
+      constraintDirection = getTriangleNormal(bestTri, positions.ref());
+    } else {
+      // Point projects outside triangle - use direction to closest point
+      Deriv toClosest = P - closestPoint;
+      Real norm = toClosest.norm();
+      if (norm > 1e-12) {
+        constraintDirection = toClosest / norm;
+      } else {
+        // Fallback to triangle normal
+        constraintDirection = getTriangleNormal(bestTri, positions.ref());
+      }
+    }
+
+    // Set signed distance
+    Deriv toPoint = P - closestPoint;
+    distance = toPoint.norm();
+    if (isInsideTriangle) {
+      // For inside triangle, use normal direction for sign
+      Deriv normal = getTriangleNormal(bestTri, positions.ref());
+      if (dot(toPoint, normal) < 0)
+        distance = -distance;
+    }
+    // For outside triangle, distance is always positive (toward surface)
+  }
+}
+
+template <class DataTypes>
+sofa::type::Vec3 SurfaceSlidingConstraint<DataTypes>::computeBarycentricCoords(
+    const Coord &P, const Triangle &tri, const VecCoord &positions) {
+  const Coord &A = positions[tri[0]];
+  const Coord &B = positions[tri[1]];
+  const Coord &C = positions[tri[2]];
+
+  // Compute vectors
+  Deriv v0 = C - A;
+  Deriv v1 = B - A;
+  Deriv v2 = P - A;
+
+  // Compute dot products
+  Real dot00 = dot(v0, v0);
+  Real dot01 = dot(v0, v1);
+  Real dot02 = dot(v0, v2);
+  Real dot11 = dot(v1, v1);
+  Real dot12 = dot(v1, v2);
+
+  // Compute barycentric coordinates
+  Real invDenom = 1.0 / (dot00 * dot11 - dot01 * dot01);
+  Real u = (dot11 * dot02 - dot01 * dot12) * invDenom;
+  Real v = (dot00 * dot12 - dot01 * dot02) * invDenom;
+
+  return sofa::type::Vec3(1.0 - u - v, v, u); // (alpha, beta, gamma)
 }
 
 template <class DataTypes>
@@ -276,8 +433,7 @@ void SurfaceSlidingConstraint<DataTypes>::internalInit() {
   for (int i = 0; i < numTris; i++) {
     for (int j = 0; j < 3; j++) {
       if (triangles[i][j] >= positions.size())
-        msg_error() << "triangles[" << i << "][" << j << "]=" <<
-        triangles[i][j]
+        msg_error() << "triangles[" << i << "][" << j << "]=" << triangles[i][j]
                     << ". is too large regarding mechanicalState size of("
                     << positions.size() << ")";
     }
