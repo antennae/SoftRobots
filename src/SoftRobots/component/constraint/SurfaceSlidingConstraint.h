@@ -111,7 +111,7 @@ protected:
   Data<sofa::type::vector<Triangle>> d_triangles;
 
   sofa::type::vector<Edge> m_edges;
-  Data<Real> m_force; // Store constraint forces
+  Data<sofa::type::vector<Real>> m_force; // Store constraint forces
   // Distance from the point to the surface
   Data<sofa::type::vector<Real>> m_distance;
 

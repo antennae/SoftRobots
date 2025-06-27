@@ -208,7 +208,12 @@ def createScene(rootNode: Sofa.Core.Node) -> Sofa.Core.Node:
         'MechanicalObject',
         name='point',
         # position=[[0.5, -0.5, 0.5]],
-        position=[[0.3, 0.3, 0.5]],
+        position=[
+            [0.5, -0.5, 0.5],
+            [0.3, 0.3, 0.5],
+            [0.3, 0.3, -0.5],
+            [0, 0, 0.1],
+        ],
         template='Vec3d',
         showObject=True,
         showObjectScale=10,
@@ -224,6 +229,6 @@ def createScene(rootNode: Sofa.Core.Node) -> Sofa.Core.Node:
         'SurfaceSlidingConstraint',
         name='slidingConstraint',
         surfaceState='@../triangles_mo',
-        pointIndex=0,
+        pointIndex=[0, 1, 2, 3],
         triangles=surfaces_mesh.triangles,
     )

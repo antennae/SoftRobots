@@ -89,12 +89,14 @@ void SurfaceSlidingConstraint<DataTypes>::buildConstraintMatrix(
 
   // Build constraint matrix: single row with normal direction
   MatrixDeriv &matrix = *cMatrix.beginEdit();
-  MatrixDerivRowIterator rowIterator = matrix.writeLine(constraintIndex);
 
-  const VecCoord &positions = x.getValue();
+  VecCoord positions = x.getValue();
   std::vector<unsigned int> pointIndices = d_pointIndex.getValue();
 
   for (unsigned int i = 0; i < pointIndices.size(); ++i) {
+    MatrixDerivRowIterator rowIterator = matrix.writeLine(cIndex);
+    cIndex++;
+
     // Get the position of the sliding point
     const Coord &pointPos = positions[pointIndices[i]];
 
@@ -106,15 +108,9 @@ void SurfaceSlidingConstraint<DataTypes>::buildConstraintMatrix(
 
     findBestConstraintDirection(pointPos, closestPoint, constraintDirection,
                                 distance, isInsideTriangle);
-    
-    // std::cout << "Point index: " << pointIndices[i]
-    //           << ", Closest point: " << closestPoint
-    //           << ", Direction: " << constraintDirection
-    //           << ", Distance: " << distance << std::endl;
-    // std::cout << "Is inside triangle: " << isInsideTriangle << std::endl;
+
     stored_distance[i] = distance;
-    rowIterator.addCol(pointIndices[i], constraintDirection);
-    cIndex++;
+    rowIterator.setCol(pointIndices[i], constraintDirection);
   }
 
   cMatrix.endEdit();
@@ -131,11 +127,11 @@ void SurfaceSlidingConstraint<DataTypes>::getConstraintViolation(
 
   for (unsigned int i = 0; i < d_pointIndex.getValue().size(); ++i) {
     // Get the index of the point
-    unsigned int pointIndex = d_pointIndex.getValue()[i];
+    // unsigned int pointIndex = d_pointIndex.getValue()[i];
     // Get the distance from the point to the surface
-    Real distance = m_distance.getValue()[pointIndex];
+    Real distance = m_distance.getValue()[i];
 
-    Real dfree = Jdx->element(0) + distance;
+    Real dfree = Jdx->element(i) + distance;
     // Set the constraint violation in the result vector
     resV->set(d_constraintIndex.getValue() + i, dfree);
   }
@@ -385,12 +381,14 @@ void SurfaceSlidingConstraint<DataTypes>::storeLambda(
   SOFA_UNUSED(cParams);
   SOFA_UNUSED(res);
 
+  WriteAccessor<Data<sofa::type::vector<Real>>> forces = m_force;
+  forces.resize(d_pointIndex.getValue().size());
+
   for (unsigned int i = 0; i < d_pointIndex.getValue().size(); ++i) {
     // Get the index of the point
     unsigned int pointIndex = d_pointIndex.getValue()[i];
-
     // Store the lambda value for this point
-    m_force.setValue(lambda->element(d_constraintIndex.getValue() + i));
+    forces[i] = lambda->element(d_constraintIndex.getValue() + i);
   }
 }
 
@@ -439,11 +437,11 @@ void SurfaceSlidingConstraint<DataTypes>::internalInit() {
     }
   }
 
-  // check that the pointIndex is valid
-  if (d_pointIndex.getValue().size() >= positions.size())
-    msg_error() << "pointIndex=" << d_pointIndex.getValue()
-                << " is too large regarding mechanicalState size of("
-                << positions.size() << ")";
+  // // check that the pointIndex is valid - this check doesn't make sense
+  // if (d_pointIndex.getValue().size() >= positions.size())
+  //   msg_error() << "pointIndex=" << d_pointIndex.getValue()
+  //               << " is too large regarding mechanicalState size of("
+  //               << positions.size() << ")";
 }
 
 template <class DataTypes>
