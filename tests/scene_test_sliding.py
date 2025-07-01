@@ -228,7 +228,7 @@ def createScene(rootNode: Sofa.Core.Node) -> Sofa.Core.Node:
     c_node.addObject(
         'SurfaceSlidingConstraint',
         name='slidingConstraint',
-        surfaceState='@../triangles_mo',
-        pointIndex=[0, 1, 2, 3],
-        triangles=surfaces_mesh.triangles,
+        surfaceState='@../triangles_mo', # postions of target surface
+        pointIndex=[0, 1, 2, 3], # indices of points to be constrained
+        triangles=surfaces_mesh.triangles, # triangles of target surface
     )

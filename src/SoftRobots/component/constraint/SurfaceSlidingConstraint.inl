@@ -28,8 +28,11 @@ SurfaceSlidingConstraint<DataTypes>::SurfaceSlidingConstraint(
           "If no list is given, the component will \n"
           "fill the list with the context topology.")),
       m_force(initData(&m_force, "force",
-                       "Constraint forces applied to the surface points.")) {
+                       "Constraint forces applied to the surface points.")),
+      m_distance(initData(&m_distance, "distance",
+                          "Distance from the sliding points to the surface.")) {
   m_force.setReadOnly(true);
+  m_distance.setReadOnly(true);
 }
 
 template <class DataTypes>
@@ -41,6 +44,9 @@ template <class DataTypes> void SurfaceSlidingConstraint<DataTypes>::init() {
 
   internalInit();
 
+
+  // TODO: Set up distance
+  
   m_pointState =
       dynamic_cast<MechanicalState *>(getContext()->getMechanicalState());
 
@@ -437,9 +443,10 @@ void SurfaceSlidingConstraint<DataTypes>::internalInit() {
     }
   }
 
-  ReadAccessor<Data<VecCoord>> mechanical_state_positions = m_state->readPositions();
-  // // check that the pointIndex is valid - this check doesn't make sense
-  if (d_pointIndex.getValue().size() >= mechanical_state_positions.size())
+  ReadAccessor<Data<VecCoord>> mechanical_state_positions =
+      m_state->readPositions();
+
+  if (d_pointIndex.getValue().size() > mechanical_state_positions.size())
     msg_error() << "pointIndex=" << d_pointIndex.getValue()
                 << " is too large regarding mechanicalState size of("
                 << mechanical_state_positions.size() << ")";

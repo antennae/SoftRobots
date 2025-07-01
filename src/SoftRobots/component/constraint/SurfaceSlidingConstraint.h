@@ -57,7 +57,7 @@ protected:
 };
 
 template <class DataTypes>
-class SurfaceSlidingConstraint : public SoftRobotsConstraint<DataTypes> {
+class SurfaceSlidingConstraint : virtual public SoftRobotsConstraint<DataTypes> {
 public:
   SOFA_CLASS(SOFA_TEMPLATE(SurfaceSlidingConstraint, DataTypes),
              SOFA_TEMPLATE(SoftRobotsConstraint, DataTypes));
